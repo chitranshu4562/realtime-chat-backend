@@ -29,12 +29,24 @@ export class NotFoundError extends AppError {
     }
 }
 
+export class ConflictError extends AppError {
+    constructor(message: string = "Already Exists") {
+        super(message, 409);
+    }
+}
+
 export class ValidationError extends AppError {
     public readonly errors: Record<string, string>[];
 
     constructor(message: string = 'Validation Error', errors: Record<string, string>[] = []) {
         super(message, 422);
         this.errors = errors;
+    }
+}
+
+export class TooManyRequestsError extends AppError {
+    constructor(message: string = "Too many requests") {
+        super(message, 429);
     }
 }
 

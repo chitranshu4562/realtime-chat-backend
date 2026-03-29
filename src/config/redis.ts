@@ -1,12 +1,12 @@
 import Redis from "ioredis";
-import "dotenv/config";
+import {env} from "./env";
 
 class RedisClient {
     private static instance: Redis | null = null;
 
     static getInstance(): Redis {
         if (!RedisClient.instance) {
-            RedisClient.instance = new Redis(process.env.REDIS_URL, {
+            RedisClient.instance = new Redis(env.REDIS_URL, {
                 maxRetriesPerRequest: 1,
                 lazyConnect: true
             })

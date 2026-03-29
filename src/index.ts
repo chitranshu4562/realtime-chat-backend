@@ -1,18 +1,21 @@
-import express, { Request, Response} from "express";
-import {errorHandler} from "./middleware/errorHandler";
+import {env} from "./config/env";
+import app from "./app";
+import prisma from "./config/prisma";
+import {logger} from "./shared/logger";
+import {redis} from "./config/redis";
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+async function bootstrap() {
+    await prisma.$connect();
+    logger.info("Connected to PostgreSQL");
 
-app.use(express.json());
+    await redis.connect();
 
-app.get("/", (req: Request, res: Response) => {
-    res.status(200).json({ message: "Hello World!" });
-})
+    app.listen(env.PORT, () => {
+        console.log(`Server running on port ${env.PORT}`);
+    })
+}
 
-// global error handler
-app.use(errorHandler);
-
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-})
+bootstrap().catch((err) => {
+    console.error("❌ Failed to start server:", err);
+    process.exit(1);
+});

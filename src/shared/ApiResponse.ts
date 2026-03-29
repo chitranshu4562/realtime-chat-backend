@@ -13,7 +13,7 @@ interface ErrorResponse {
 }
 
 export class ApiResponse {
-    static ok<T>(res: Response, data: T, message: 'Success'): Response<SuccessResponse<T>> {
+    static ok<T>(res: Response, message: string = 'Success', data: T = undefined): Response<SuccessResponse<T>> {
         return res.status(200).json({
             success: true,
             message: message,
@@ -21,7 +21,7 @@ export class ApiResponse {
         })
     }
 
-    static created<T>(res: Response, data: T, message: 'Created'): Response<SuccessResponse<T>> {
+    static created<T>(res: Response, message: string = 'Created', data: T = undefined): Response<SuccessResponse<T>> {
         return res.status(201).json({
             success: true,
             message: message,
