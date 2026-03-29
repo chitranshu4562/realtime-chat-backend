@@ -1,0 +1,41 @@
+node_modules
+# Keep environment variables out of version control
+.env
+.env.*
+!.env.example
+
+/src/generated/prisma
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# WebStorm / JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Testing
+coverage/
+
+# Temp files
+tmp/
+temp/
