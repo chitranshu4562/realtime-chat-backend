@@ -11,3 +11,13 @@ export const sendOtp = async (req: Request, res: Response, next: NextFunction) =
         next(err);
     }
 }
+
+export const verifyOtp = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, otp } = req.body;
+        const result = await authService.verifyOtp(email, otp);
+        ApiResponse.ok(res, 'OTP verified successfully', result);
+    } catch (err) {
+        next(err);
+    }
+}

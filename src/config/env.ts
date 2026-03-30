@@ -14,7 +14,8 @@ const envSchema = zod.object({
     REFRESH_TOKEN_SECRET: zod.string().min(32),
     REFRESH_TOKEN_EXPIRY: zod.string().default("7d"),
 
-    OTP_EXPIRY_IN_SECONDS: zod.coerce.number().default(5),
+    OTP_EXPIRY_IN_SECONDS: zod.coerce.number().default(300),
+    OTP_MAX_ATTEMPTS: zod.coerce.number().default(5),
 
     RESEND_API_KEY: zod.string().min(1),
     SENDER_EMAIL: zod.string().min(1),

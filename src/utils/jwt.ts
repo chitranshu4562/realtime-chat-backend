@@ -12,7 +12,7 @@ export interface RefreshTokenPayload {
     type: "refresh";
 }
 
-export interface EmailVerifiedTokenPayload {
+export interface VerifiedEmailTokenPayload {
     email: string;
     type: "email_verified"; // it will used only for signup
 }
@@ -33,7 +33,7 @@ export const signRefreshToken = (payload: Omit<RefreshTokenPayload, "type">): st
     );
 }
 
-export const signEmailVerifiedToken = (email: string): string => {
+export const signVerifiedEmailToken = (email: string): string => {
     return jwt.sign(
         { email: email, type: "email_verified" },
         env.ACCESS_TOKEN_SECRET,
@@ -61,9 +61,9 @@ export const verifyRefreshToken = (token: string): RefreshTokenPayload => {
     }
 }
 
-export const verifyEmailVerifiedToken = (token: string): EmailVerifiedTokenPayload => {
+export const verifyEmailVerifiedToken = (token: string): VerifiedEmailTokenPayload => {
     try {
-        const payload = jwt.verify(token, env.ACCESS_TOKEN_SECRET) as EmailVerifiedTokenPayload;
+        const payload = jwt.verify(token, env.ACCESS_TOKEN_SECRET) as VerifiedEmailTokenPayload;
         if (payload.type !== "email_verified") throw new Error("Wrong Token Type");
         return payload;
     } catch {
