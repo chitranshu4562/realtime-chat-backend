@@ -1,5 +1,5 @@
 import { z as zod } from "zod";
-import {EMAIL_REGEX, PHONE_NUMBER_REGEX} from "../../shared/constants";
+import {EMAIL_REGEX, PASSWORD_REGEX, PHONE_NUMBER_REGEX} from "../../shared/constants";
 
 export const sendOtpSchema = zod.object({
     email: zod
@@ -41,5 +41,22 @@ export const signUpSchema = zod.object({
     password: zod
         .string({ error: 'Password is required' })
         .trim()
-        .min(1, { error: 'Password is required' }),
+        .regex(PASSWORD_REGEX, 'Password must be 8–64 chars, include uppercase, lowercase, number, and special character'),
+    confirmPassword: zod.string({ error: 'Confirm passwords are required' }).trim(),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ["confirmPassword"]
+})
+
+export const loginSchema = zod.object({
+    email: zod
+        .string({ error: 'Email is required' })
+        .trim()
+        .min(1, { error: 'Email is required' })
+        .toLowerCase()
+        .regex(EMAIL_REGEX, 'Please enter a valid email'),
+    password: zod
+        .string({ error: 'Password is required' })
+        .trim()
+        .min(1, { error: 'Password is required' })
 })

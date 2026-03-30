@@ -1,18 +1,25 @@
 import prisma from "../../config/prisma";
-import {BadRequestError, ConflictError, TooManyRequestsError} from "../../errors/AppError";
+import {
+    BadRequestError,
+    ConflictError,
+    NotFoundError,
+    TooManyRequestsError,
+    UnauthorizedError
+} from "../../errors/AppError";
 import {env} from "../../config/env";
 import {redis} from "../../config/redis";
 import {generateOtp} from "../../utils/otp";
 import {sendOtpInEmail} from "../../shared/services/email/email.service";
 import {
+    RefreshTokenPayload,
     signAccessToken,
     signRefreshToken,
     signVerifiedEmailToken,
     VerifiedEmailTokenPayload,
-    verifyEmailVerifiedToken
+    verifyEmailVerifiedToken, verifyRefreshToken
 } from "../../utils/jwt";
 import {AuthTokens, OtpData} from "./auth.types";
-import {hashPassword, hashToken} from "../../utils/hash";
+import {comparePassword, hashPassword, hashToken} from "../../utils/hash";
 
 const OTP_KEY = (email: string) => `otp:${email}`;
 const OTP_TTL = env.OTP_EXPIRY_IN_SECONDS;
@@ -98,7 +105,44 @@ export const registerUser = async (verifiedEmailToken: string, name: string, pho
     return issueTokens(user.id, user.email);
 }
 
-async function issueTokens(userId: string, email: string): Promise<AuthTokens> {
+export const loginUser = async (email: string, password: string): Promise<AuthTokens> => {
+    const user = await prisma.user.findUnique({
+        where: { email: email },
+    })
+    if (!user) throw new NotFoundError("User does not exist");
+
+    const isValid = await comparePassword(password, user.password);
+    if (!isValid) throw new BadRequestError("Password is incorrect");
+
+    // delete existing refresh tokens
+    await prisma.refreshToken.deleteMany({ where: { user } });
+
+    return issueTokens(user.id, user.email);
+}
+
+export const refreshUserTokens = async (refreshToken: string): Promise<AuthTokens> => {
+    const payload: RefreshTokenPayload = verifyRefreshToken(refreshToken);
+    const tokenHash = hashToken(refreshToken);
+
+    const storedTokenData = await prisma.refreshToken.findUnique({ where: { tokenHash }, include: { user: true } });
+    if (!storedTokenData) throw new UnauthorizedError('All sessions have been revoked, please login again');
+
+    if (storedTokenData.revokedAt || storedTokenData.expiresAt < new Date()) {
+        await prisma.refreshToken.deleteMany({ where: { tokenHash } });
+        throw new UnauthorizedError("Refresh token expired or revoked");
+    }
+
+    await prisma.refreshToken.deleteMany({ where: { tokenHash } })
+
+    return issueTokens(storedTokenData.user.id, storedTokenData.user.email)
+}
+
+export const logoutUser = async (refreshToken: string): Promise<void> => {
+    const tokenHash = hashToken(refreshToken);
+    await prisma.refreshToken.deleteMany({ where: { tokenHash } })
+}
+
+async function issueTokens(userId: number, email: string): Promise<AuthTokens> {
     const refreshToken = signRefreshToken({ userId, email });
     const accessToken = signAccessToken({ userId, email });
 

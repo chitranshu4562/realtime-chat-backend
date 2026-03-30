@@ -3,13 +3,13 @@ import {env} from "../config/env";
 import {UnauthorizedError} from "../errors/AppError";
 
 export interface AccessTokenPayload {
-    userId: string;
+    userId: number;
     email: string;
     type: "access"
 }
 
 export interface RefreshTokenPayload {
-    userId: string;
+    userId: number;
     email: string;
     type: "refresh";
 }
@@ -29,7 +29,7 @@ export const signAccessToken = (payload: Omit<AccessTokenPayload, "type">): stri
 
 export const signRefreshToken = (payload: Omit<RefreshTokenPayload, "type">): string => {
     return jwt.sign(
-        { ...payload, type: "access" },
+        { ...payload, type: "refresh" },
         env.REFRESH_TOKEN_SECRET,
         { expiresIn: env.REFRESH_TOKEN_EXPIRY }
     );
