@@ -14,10 +14,10 @@ const envSchema = zod.object({
     REFRESH_TOKEN_SECRET: zod.string().min(32),
     REFRESH_TOKEN_EXPIRY: zod.string().default("7d"),
 
-    SENDGRID_API_KEY: zod.string().min(1),
-    SENDGRID_SENDER_EMAIL: zod.string().min(1),
-
     OTP_EXPIRY_IN_SECONDS: zod.coerce.number().default(5),
+
+    RESEND_API_KEY: zod.string().min(1),
+    SENDER_EMAIL: zod.string().min(1),
 })
 
 const parsed = envSchema.safeParse(process.env);

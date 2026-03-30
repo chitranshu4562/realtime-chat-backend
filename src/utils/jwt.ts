@@ -12,6 +12,11 @@ export interface RefreshTokenPayload {
     type: "refresh";
 }
 
+export interface EmailVerifiedTokenPayload {
+    email: string;
+    type: "email_verified"; // it will used only for signup
+}
+
 export const signAccessToken = (payload: Omit<AccessTokenPayload, "type">): string => {
     return jwt.sign(
         { ...payload, type: "access" },
@@ -28,6 +33,14 @@ export const signRefreshToken = (payload: Omit<RefreshTokenPayload, "type">): st
     );
 }
 
+export const signEmailVerifiedToken = (email: string): string => {
+    return jwt.sign(
+        { email: email, type: "email_verified" },
+        env.ACCESS_TOKEN_SECRET,
+        { expiresIn: env.ACCESS_TOKEN_EXPIRY }
+    )
+}
+
 export const verifyAccessToken = (token: string): AccessTokenPayload => {
     try {
         const payload = jwt.verify(token, env.ACCESS_TOKEN_SECRET) as AccessTokenPayload;
@@ -38,12 +51,22 @@ export const verifyAccessToken = (token: string): AccessTokenPayload => {
     }
 }
 
-export function verifyRefreshToken(token: string): RefreshTokenPayload {
+export const verifyRefreshToken = (token: string): RefreshTokenPayload => {
     try {
         const payload = jwt.verify(token, env.REFRESH_TOKEN_SECRET) as RefreshTokenPayload;
         if (payload.type !== "refresh") throw new Error("Wrong token type");
         return payload;
     } catch {
         throw new UnauthorizedError("Invalid or expired token");
+    }
+}
+
+export const verifyEmailVerifiedToken = (token: string): EmailVerifiedTokenPayload => {
+    try {
+        const payload = jwt.verify(token, env.ACCESS_TOKEN_SECRET) as EmailVerifiedTokenPayload;
+        if (payload.type !== "email_verified") throw new Error("Wrong Token Type");
+        return payload;
+    } catch {
+        throw new UnauthorizedError("Invalid or expired email verified token");
     }
 }
