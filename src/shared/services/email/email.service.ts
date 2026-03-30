@@ -35,7 +35,7 @@ export async function sendEmail(
     }
 }
 
-export async function sendOtpToEmail({to, otp, expiresInMinutes}: SendOtpPayload): Promise<void> {
+export async function sendOtpInEmail({to, otp, expiresInMinutes}: SendOtpPayload): Promise<void> {
     await sendEmail({
         to: to,
         subject: "Your verification code",

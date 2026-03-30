@@ -4,11 +4,13 @@ import {UnauthorizedError} from "../errors/AppError";
 
 export interface AccessTokenPayload {
     userId: string;
+    email: string;
     type: "access"
 }
 
 export interface RefreshTokenPayload {
     userId: string;
+    email: string;
     type: "refresh";
 }
 
