@@ -1,15 +1,22 @@
-import {Resend} from "resend";
-import {env} from "../../../config/env";
-import {SendOtpPayload} from "./email.types";
-import {otpEmailTemplate} from "./email.templates";
+import { env } from "../../../config/env";
+import { SendOtpPayload } from "./email.types";
+import { otpEmailTemplate } from "./email.templates";
+import nodemailer, { Transporter } from "nodemailer";
 
-let resendClient: Resend | null = null;
+let transporter: Transporter | null = null;
 
-function getResendClient() {
-    if (!resendClient) {
-        resendClient = new Resend(env.RESEND_API_KEY);
+function getTransporter() {
+    if (!transporter) {
+        transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: env.GMAIL_USER,
+                pass: env.GMAIL_APP_PASSWORD,
+            }
+        })
     }
-    return resendClient;
+
+    return transporter;
 }
 
 export async function sendEmail(
@@ -23,19 +30,22 @@ export async function sendEmail(
         html: string;
     }
 ): Promise<void> {
-    const client = getResendClient();
-    const {error} = await client.emails.send({
-        from: env.SENDER_EMAIL,
-        to,
-        subject,
-        html,
-    });
-    if (error) {
-        throw new Error("Failed to send email");
+    try {
+        const transporterClient = getTransporter();
+        const mailOptions = {
+            from: `"Realtime Chat App" <${env.GMAIL_USER}>`,
+            to,
+            subject,
+            html
+        }
+        const response = await transporterClient.sendMail(mailOptions);
+        return response;
+    } catch (err) {
+        throw new Error(err instanceof Error ? err.message : 'Failed to send email')
     }
 }
 
-export async function sendOtpInEmail({to, otp, expiresInMinutes}: SendOtpPayload): Promise<void> {
+export async function sendOtpInEmail({ to, otp, expiresInMinutes }: SendOtpPayload): Promise<void> {
     await sendEmail({
         to: to,
         subject: "Your verification code",

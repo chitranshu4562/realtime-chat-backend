@@ -5,12 +5,12 @@ import { AccessTokenPayload, verifyAccessToken } from "../utils/jwt";
 declare global {
     namespace Express {
         interface Request {
-            user?: { userId: string, email: string }
+            user?: { userId: number, email: string }
         }
     }
 }
 
-export function authenticate(req: Request, res: Response, next: NextFunction) {
+export function authenticateRequest(req: Request, res: Response, next: NextFunction) {
     const authHeaders = req.headers.authorization;
 
     if (!authHeaders?.startsWith("Bearer ")) throw new UnauthorizedError("Auth token is missing");
@@ -19,7 +19,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
 
     try {
         const tokenPayload: AccessTokenPayload = verifyAccessToken(token);
-        req.user = { userId: String(tokenPayload.userId), email: tokenPayload.email }
+        req.user = { userId: tokenPayload.userId, email: tokenPayload.email }
         next();
     } catch (err) {
         next(err);

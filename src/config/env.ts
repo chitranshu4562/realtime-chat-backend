@@ -17,10 +17,10 @@ const envSchema = zod.object({
     OTP_EXPIRY_IN_SECONDS: zod.coerce.number().default(300),
     OTP_MAX_ATTEMPTS: zod.coerce.number().default(5),
 
-    RESEND_API_KEY: zod.string().min(1),
-    SENDER_EMAIL: zod.string().min(1),
-
     CLIENT_URL: zod.string().min(1),
+
+    GMAIL_USER: zod.string().min(1),
+    GMAIL_APP_PASSWORD: zod.string().min(1),
 })
 
 const parsed = envSchema.safeParse(process.env);
