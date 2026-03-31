@@ -19,6 +19,8 @@ const envSchema = zod.object({
 
     RESEND_API_KEY: zod.string().min(1),
     SENDER_EMAIL: zod.string().min(1),
+
+    CLIENT_URL: zod.string().min(1),
 })
 
 const parsed = envSchema.safeParse(process.env);

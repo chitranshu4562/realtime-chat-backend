@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
-import {env} from "../config/env";
-import {UnauthorizedError} from "../errors/AppError";
+import { StringValue } from 'ms';
+import { env } from "../config/env";
+import { UnauthorizedError } from "../errors/AppError";
 
 export interface AccessTokenPayload {
     userId: number;
@@ -23,7 +24,7 @@ export const signAccessToken = (payload: Omit<AccessTokenPayload, "type">): stri
     return jwt.sign(
         { ...payload, type: "access" },
         env.ACCESS_TOKEN_SECRET,
-        { expiresIn: env.ACCESS_TOKEN_EXPIRY }
+        { expiresIn: env.ACCESS_TOKEN_EXPIRY as StringValue }
     );
 }
 
@@ -31,7 +32,7 @@ export const signRefreshToken = (payload: Omit<RefreshTokenPayload, "type">): st
     return jwt.sign(
         { ...payload, type: "refresh" },
         env.REFRESH_TOKEN_SECRET,
-        { expiresIn: env.REFRESH_TOKEN_EXPIRY }
+        { expiresIn: env.REFRESH_TOKEN_EXPIRY as StringValue }
     );
 }
 
@@ -39,7 +40,7 @@ export const signVerifiedEmailToken = (email: string): string => {
     return jwt.sign(
         { email: email, type: "email_verified" },
         env.ACCESS_TOKEN_SECRET,
-        { expiresIn: env.ACCESS_TOKEN_EXPIRY }
+        { expiresIn: env.ACCESS_TOKEN_EXPIRY as StringValue }
     )
 }
 
