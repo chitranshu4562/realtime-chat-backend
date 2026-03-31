@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { ClientToServerEvents, ServerToClientEvents, SocketData } from './socket.types';
 import prisma from '../config/prisma';
+import { logger } from '../shared/logger';
 
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
 type IO = Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
@@ -10,85 +11,104 @@ export function registerHandlers(io: IO, socket: AppSocket) {
 
     // ── Joining the personal room ────────────────────────
     socket.join(`user:${userId}`);
-    console.log(`[socket] ${name} connected - socket ${socket.id}`)
+    logger.info(`[socket] ${name} connected - socket ${socket.id}`)
 
     // ── The conversation:join handler ────────────────────────
-    socket.on('conversation:join', async ({ conversationId }) => {
-        const member = await prisma.conversationMember.findUnique({
-            where: {
-                conversationId_userId: { conversationId, userId } // conversationId_userId, prisma generate via @@unique([conversationId, userId])
+    socket.on('conversation:join', async ({ conversationId }, callback) => {
+        try {
+            const member = await prisma.conversationMember.findUnique({
+                where: {
+                    conversationId_userId: { conversationId, userId } // conversationId_userId, prisma generate via @@unique([conversationId, userId])
+                }
+            })
+
+            if (!member) {
+                throw new Error('You are not a member of this conversation.')
             }
-        })
 
-        if (!member) {
-            socket.emit('error', { message: 'You are not a member of this conversation.' });
+            // join room to receive all
+            // event emitted to conversation:${conversationId}
+            socket.join(`conversation:${conversationId}`)
+            logger.info(`[socket] ${name} joined conversation:${conversationId}`)
+            callback({ success: true, message: 'Conversation started', data: { name, conversationId } })
+        } catch (err) {
+            const errMessage = err instanceof Error ? err.message : 'Something went wrong';
+            logger.error(errMessage);
+            callback({ success: false, message: errMessage })
         }
-
-        // join room to receive all
-        // event emitted to conversation:${conversationId}
-        socket.join(`conversation:${conversationId}`)
-        console.log(`[socket] ${name} joined conversation:${conversationId}`)
     })
 
     // ── The conversation:leave handler ────────────────────────
-    socket.on('conversation:leave', async ({ conversationId }) => {
-        socket.leave(`conversation:${conversationId}`)
-        console.log(`[socket] ${name} joined conversation:${conversationId}`)
+    socket.on('conversation:leave', async ({ conversationId }, callback) => {
+        try {
+            socket.leave(`conversation:${conversationId}`)
+            logger.info(`[socket] ${name} joined conversation:${conversationId}`)
+            callback({ success: true, message: 'Conversation ended', data: { name, conversationId } })
+        } catch (err) {
+            const errMessage = err instanceof Error ? err.message : 'Something went wrong';
+            logger.error(errMessage);
+            callback({ success: false, message: errMessage })
+        }
     })
 
     // ── message:send ───────────────────────────────────────────
-    socket.on('message:send', async ({ conversationId, content }) => {
-        if (!content || content.trim().length === 0) {
-            socket.emit('error', { message: 'Message can not be empty.' });
-            return;
-        }
-
-        const member = await prisma.conversationMember.findUnique({
-            where: {
-                conversationId_userId: { conversationId, userId }
+    socket.on('message:send', async ({ conversationId, content }, callback) => {
+        try {
+            if (!content || content.trim().length === 0) {
+                throw new Error('Message can not be empty.');
             }
-        })
 
-        if (!member) {
-            socket.emit('error', { message: 'You are not a member of this conversation.' });
-            return;
-        }
-
-        const [message] = await prisma.$transaction([
-            prisma.message.create({
-                data: {
-                    conversationId,
-                    senderId: userId,
-                    content: content.trim()
-                },
-                include: {
-                    sender: {
-                        select: { id: true, name: true }
-                    }
+            const member = await prisma.conversationMember.findUnique({
+                where: {
+                    conversationId_userId: { conversationId, userId }
                 }
-            }),
-
-            // for correct sorting conversation using updated_at
-            prisma.conversation.update({
-                where: { id: conversationId },
-                data: { updatedAt: new Date() }
             })
-        ])
 
-        io.to(`conversation:${conversationId}`).emit('message:new', {
-            id: message.id,
-            conversationId: message.conversationId,
-            content: message.content ?? '',
-            senderId: message.senderId,
-            senderName: message.sender.name ?? '',
-            createdAt: message.createdAt.toISOString()
-        })
+            if (!member) {
+                throw new Error('You are not a member of this conversation.');
+            }
 
-        console.log(`[socket] ${name} → conv:${conversationId}: "${content.trim()}"`)
+            const [message] = await prisma.$transaction([
+                prisma.message.create({
+                    data: {
+                        conversationId,
+                        senderId: userId,
+                        content: content.trim()
+                    },
+                    include: {
+                        sender: {
+                            select: { id: true, name: true }
+                        }
+                    }
+                }),
 
-        // ── disconnect socket ───────────────────────────────────────────
-        socket.on('disconnect', (reason) => {
-            console.log(`[socket] ${name} disconnected — reason: ${reason}`)
-        })
+                // for correct sorting conversation using updated_at
+                prisma.conversation.update({
+                    where: { id: conversationId },
+                    data: { updatedAt: new Date() }
+                })
+            ])
+
+            io.to(`conversation:${conversationId}`).emit('message:new', {
+                id: message.id,
+                conversationId: message.conversationId,
+                content: message.content ?? '',
+                senderId: message.senderId,
+                senderName: message.sender.name ?? '',
+                createdAt: message.createdAt.toISOString()
+            })
+
+            logger.info(`[socket] ${name} → conv:${conversationId}: "${content.trim()}"`)
+            callback({ success: true, message: 'Message sent', data: { message } })
+        } catch (err) {
+            const errMessage = err instanceof Error ? err.message : 'Something went wrong';
+            logger.error(errMessage);
+            callback({ success: false, message: errMessage })
+        }
+    })
+
+    // ── disconnect socket ───────────────────────────────────────────
+    socket.on('disconnect', (reason) => {
+        logger.info(`[socket] ${name} disconnected — reason: ${reason}`)
     })
 }
