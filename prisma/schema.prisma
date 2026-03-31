@@ -20,8 +20,10 @@ model User {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  // Auth Relations
-  refreshTokens RefreshToken[]
+  refreshTokens        RefreshToken[]
+  createdConversations Conversation[]
+  conversationMembers  ConversationMember[]
+  messages             Message[]
 
   @@map("users")
 }
@@ -39,4 +41,66 @@ model RefreshToken {
   @@index([userId])
   @@index([tokenHash])
   @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────
+// CONVERSATIONS
+// ─────────────────────────────────────────
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+model Conversation {
+  id          Int              @id @default(autoincrement())
+  createdById Int              @map("created_by_id")
+  createdBy   User             @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  type        ConversationType @default(DIRECT)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  conversationMembers ConversationMember[]
+  messages            Message[]
+
+  @@index([updatedAt])
+  @@map("conversations")
+}
+
+enum MemberRole {
+  MEMBER
+  ADMIN
+}
+
+model ConversationMember {
+  id             Int          @id @default(autoincrement())
+  conversationId Int          @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         Int          @map("user_id")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           MemberRole
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@map("conversation_members")
+}
+
+// ─────────────────────────────────────────
+// CONVERSATIONS
+// ─────────────────────────────────────────
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  content        String
+  conversationId Int          @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       Int          @map("sender_id")
+  sender         User         @relation(fields: [senderId], references: [id])
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
 }
