@@ -12,23 +12,16 @@ datasource db {
 // ─────────────────────────────────────────
 
 model User {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String?
-  email       String    @unique
-  phoneNumber String    @unique @map("phone_number")
+  email       String   @unique
+  phoneNumber String   @unique @map("phone_number")
   password    String
-  lastSeenAt  DateTime? @map("last_seen_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Auth Relations
   refreshTokens RefreshToken[]
-
-  // Chat Relations
-  createdConversations Conversation[]       @relation("ConversationCreator")
-  conversationMembers  ConversationMember[]
-  sentMessages         Message[]            @relation("MessageSender")
-  messageStatuses      MessageStatus[]      @relation("MessageRecipient")
 
   @@map("users")
 }
@@ -46,119 +39,4 @@ model RefreshToken {
   @@index([userId])
   @@index([tokenHash])
   @@map("refresh_tokens")
-}
-
-// ─────────────────────────────────────────
-// Conversations
-// ─────────────────────────────────────────
-
-enum ConversationType {
-  DIRECT
-  GROUP
-}
-
-model Conversation {
-  id          Int              @id @default(autoincrement())
-  type        ConversationType
-  name        String?
-  description String?
-  createdById Int              @map("created_by_id")
-  createdBy   User             @relation("ConversationCreator", fields: [createdById], references: [id])
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
-
-  members  ConversationMember[]
-  messages Message[]
-
-  @@index([createdById])
-  @@index([updatedAt])
-  @@map("conversations")
-}
-
-enum MemberRole {
-  MEMBER
-  ADMIN
-}
-
-model ConversationMember {
-  id             Int          @id @default(autoincrement())
-  conversationId Int          @map("conversation_id")
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  userId         Int          @map("user_id")
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role           MemberRole   @default(MEMBER)
-  joinedAt       DateTime     @default(now()) @map("joined_at")
-  lastReadAt     DateTime?    @map("last_read_at") // watermark for unread count
-  leftAt         DateTime?    @map("left_at")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
-
-  @@unique([conversationId, userId])
-  @@index([userId])
-  @@index([conversationId])
-  @@map("conversation_members")
-}
-
-// ─────────────────────────────────────────
-// MESSAGES
-// ─────────────────────────────────────────
-
-enum ContentType {
-  TEXT
-  IMAGE
-  FILE
-}
-
-model Message {
-  id             Int          @id @default(autoincrement())
-  conversationId Int          @map("conversation_id")
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  senderId       Int          @map("sender_id")
-  sender         User         @relation("MessageSender", fields: [senderId], references: [id])
-
-  content     String? // null for media-only message
-  contentType ContentType @default(TEXT) @map("content_type")
-  mediaUrl    String?     @map("media_url")
-
-  // message reply in thread
-  replyToId Int?      @map("reply_to_id")
-  replyTo   Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
-  replies   Message[] @relation("MessageReplies")
-
-  deletedAt DateTime? @map("deleted_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  statuses MessageStatus[]
-
-  @@index([conversationId, createdAt]) // pagination
-  @@index([senderId])
-  @@map("messages")
-}
-
-// ─────────────────────────────────────────
-// MESSAGE STATUS
-// ─────────────────────────────────────────
-
-enum MessageStatusEnum {
-  SENT
-  DELIVERED
-  READ
-}
-
-model MessageStatus {
-  id          Int               @id @default(autoincrement())
-  messageId   Int               @map("message_id")
-  message     Message           @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  recipientId Int               @map("recipient_id")
-  recipient   User              @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
-  status      MessageStatusEnum @default(SENT)
-  sentAt      DateTime          @default(now()) @map("sent_at")
-  deliveredAt DateTime?         @map("delivered_at")
-  readAt      DateTime?         @map("read_at")
-
-  @@unique([messageId, recipientId])
-  @@index([recipientId, status])
-  @@index([messageId])
-  @@map("message_statuses")
 }
