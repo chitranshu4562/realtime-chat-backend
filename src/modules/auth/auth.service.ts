@@ -9,7 +9,7 @@ import {
 import {env} from "../../config/env";
 import {redis} from "../../lib/redis";
 import {generateOtp} from "../../utils/otp";
-import {sendOtpInEmail} from "../../shared/email/email.service";
+import {sendOtpInEmail} from "../../helpers/email/email.service";
 import {
     RefreshTokenPayload,
     signAccessToken,

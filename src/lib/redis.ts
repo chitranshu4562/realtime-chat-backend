@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 import { env } from "../config/env";
-import { logger } from "../shared/logger";
+import { logger } from "../helpers/logger";
 
 class RedisClient {
     private static instance: Redis | null = null;

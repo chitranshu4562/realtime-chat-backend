@@ -1,5 +1,5 @@
 import { z as zod } from "zod";
-import {EMAIL_REGEX, PASSWORD_REGEX, PHONE_NUMBER_REGEX} from "../../shared/constants";
+import {EMAIL_REGEX, PASSWORD_REGEX, PHONE_NUMBER_REGEX} from "../../helpers/constants";
 
 export const sendOtpSchema = zod.object({
     email: zod

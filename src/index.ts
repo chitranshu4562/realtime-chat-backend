@@ -1,7 +1,7 @@
 import { env } from "./config/env";
 import app from "./app";
 import prisma from "./lib/prisma";
-import { logger } from "./shared/logger";
+import { logger } from "./helpers/logger";
 import { redis } from "./lib/redis";
 import { createServer } from "http";
 
