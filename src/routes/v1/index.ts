@@ -1,7 +1,7 @@
 import { Router } from "express";
 import authRoutes from "../../modules/auth/auth.routes";
 import conversationRouter from "../../modules/conversation/conversation.routes";
-import { authenticateRequest } from "../../middleware/authenticate";
+import { authenticateRequest } from "../../middlewares/authenticate";
 
 const v1Router = Router();
 

@@ -34,7 +34,7 @@ export const createConversation = async (creatorId: number, data: CreateConversa
             }
         })
 
-        if (result.length > 0) return result;
+        if (result.length > 0) return { conversationId: result[0].conversationId };
     }
 
     const conversation = await prisma.conversation.create({
@@ -57,5 +57,5 @@ export const createConversation = async (creatorId: number, data: CreateConversa
         }
     })
 
-    return conversation;
+    return { conversationId: conversation.id };
 }
