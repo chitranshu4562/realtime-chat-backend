@@ -32,14 +32,14 @@ export function initSocketServer(httpServer: HttpServer): Server {
     io.on(SOCKET_EVENTS.SYSTEM.CONNECT, (rawSocket: Socket) => {
         const socket = rawSocket as AuthenticatedSocket;
 
-        logger.info(`socket connected: ${socket}`);
+        logger.info(`socket connected having id: ${socket.id}`);
 
         registerConversationHandlers(socket);
 
         registerMessageHandlers(io, socket);
 
         socket.on(SOCKET_EVENTS.SYSTEM.DISCONNECT, (reason) => {
-            logger.info(`socket disconnected: ${socket}\nwith reason: ${reason}`)
+            logger.info(`socket disconnected having id: ${socket.id}\nwith reason: ${reason}`)
         })
 
         socket.on(SOCKET_EVENTS.SYSTEM.ERROR, (err) => {

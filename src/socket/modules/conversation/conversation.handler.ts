@@ -5,15 +5,14 @@ import { conversationRoom } from "../../helpers/room.helper";
 import { getErrorMessage } from "../../helpers/util.helper";
 import { isConversationMember } from "../../../services/conversation.service";
 import { CONVERSATION_EVENTS } from "./conversation.events";
-import { JoinConversationPayload, LeaveConversationPayload } from "./conversation.schema";
+import { JoinConversationPayload, joinConversationSchema, LeaveConversationPayload, leaveConversationSchema } from "./conversation.schema";
+import { withValidation } from "../../helpers/validate.helper";
 
 export function registerConversationHandlers(socket: AuthenticatedSocket): void {
 
     // join conversation handler
     async function joinConversationHandler({ conversationId }: JoinConversationPayload, callback: AcknowledgementCallback) {
         try {
-            if (Boolean(conversationId)) throw new Error('Conversation id is required');
-
             const isMember = await isConversationMember(conversationId, socket.userId);
             if (!isMember) throw new Error('You are not allowed to join this conversation, please create conversation first');
 
@@ -32,8 +31,6 @@ export function registerConversationHandlers(socket: AuthenticatedSocket): void 
 
     async function leaveConversationHandler({ conversationId }: LeaveConversationPayload, callback: AcknowledgementCallback) {
         try {
-            if (Boolean(conversationId)) throw new Error('Conversation id is required');
-
             await socket.leave(conversationRoom(conversationId));
             logger.info(`userId: ${socket.userId}, username: ${socket.username} left conversation room: ${conversationRoom(conversationId)}`)
             callback(socketOkResponse('You have left conversation'))
@@ -44,8 +41,8 @@ export function registerConversationHandlers(socket: AuthenticatedSocket): void 
     }
 
     // listen join conversation event
-    socket.on(CONVERSATION_EVENTS.JOIN, joinConversationHandler);
+    socket.on(CONVERSATION_EVENTS.JOIN, withValidation(joinConversationSchema, joinConversationHandler));
 
     // listed leave conversation event
-    socket.on(CONVERSATION_EVENTS.LEAVE, leaveConversationHandler);
+    socket.on(CONVERSATION_EVENTS.LEAVE, withValidation(leaveConversationSchema, leaveConversationHandler));
 }

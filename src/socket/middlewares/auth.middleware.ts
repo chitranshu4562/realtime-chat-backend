@@ -38,7 +38,6 @@ export async function authMiddleware(
 }
 
 function extractAuthToken(socket: Socket): string {
-    console.log('handshake', socket.handshake)
     const authToken = socket.handshake.headers?.token;
     if (!authToken) throw new Error('Token is missing')
 
