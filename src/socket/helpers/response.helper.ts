@@ -1,7 +1,7 @@
 export type SuccessResponse<T> = {
     success: true;
     message: string;
-    data: T
+    data?: T
 }
 
 export type ErrorResponse = {
@@ -11,9 +11,9 @@ export type ErrorResponse = {
 
 export type SocketResponse<T = unknown> = SuccessResponse<T> | ErrorResponse;
 
-export type AckCallback<T = unknown> = (res: SocketResponse<T>) => void;
+export type AcknowledgementCallback<T = unknown> = (res: SocketResponse<T>) => void;
 
-export function ok<T>(message: string, data: T): SuccessResponse<T> {
+export function socketOkResponse<T>(message: string, data?: T): SuccessResponse<T> {
     return {
         success: true,
         message,
@@ -21,7 +21,7 @@ export function ok<T>(message: string, data: T): SuccessResponse<T> {
     }
 }
 
-export function fail(message: string): ErrorResponse {
+export function socketErrorResponse(message: string): ErrorResponse {
     return {
         success: false,
         message,

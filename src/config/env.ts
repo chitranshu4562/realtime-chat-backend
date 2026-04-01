@@ -9,7 +9,7 @@ const envSchema = zod.object({
     REDIS_URL: zod.string().min(1),
 
     ACCESS_TOKEN_SECRET: zod.string().min(32),
-    ACCESS_TOKEN_EXPIRY: zod.string().default("15m"),
+    ACCESS_TOKEN_EXPIRY: zod.string().default("1d"),
 
     REFRESH_TOKEN_SECRET: zod.string().min(32),
     REFRESH_TOKEN_EXPIRY: zod.string().default("7d"),

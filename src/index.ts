@@ -4,6 +4,7 @@ import prisma from "./lib/prisma";
 import { logger } from "./helpers/logger";
 import { redis } from "./lib/redis";
 import { createServer } from "http";
+import { initSocketServer } from "./socket";
 
 async function bootstrap() {
     await prisma.$connect();
@@ -12,6 +13,10 @@ async function bootstrap() {
     await redis.connect();
 
     const httpServer = createServer(app);
+
+    // ── 3. Attach Socket.IO to the same HTTP server ──────────────────────────
+    initSocketServer(httpServer);
+    logger.info('[socket] server initialized')
 
     httpServer.listen(env.PORT, () => {
         logger.info(`Server running on port ${env.PORT}`);
