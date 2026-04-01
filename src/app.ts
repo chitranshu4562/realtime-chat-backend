@@ -1,7 +1,7 @@
 import express from "express";
-import {errorHandler} from "./middlewares/errorHandler";
+import {errorHandler} from "./middlewares/errorHandler.middleware";
 import v1Router from "./routes/v1";
-import {httpLogger} from "./middlewares/httpLogger";
+import {httpLogger} from "./middlewares/httpLogger.middleware";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 

@@ -1,8 +1,8 @@
-import { env } from "./config/env";
+import { env } from "./configs/env";
 import app from "./app";
-import prisma from "./config/prisma";
+import prisma from "./configs/prisma";
 import { logger } from "./shared/logger";
-import { redis } from "./config/redis";
+import { redis } from "./configs/redis";
 import { createServer } from "http";
 
 async function bootstrap() {

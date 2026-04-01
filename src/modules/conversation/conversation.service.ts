@@ -1,4 +1,4 @@
-import prisma from "../../config/prisma";
+import prisma from "../../configs/prisma";
 import { BadRequestError } from "../../errors/AppError";
 import { CreateConversationInput } from "./conversation.schema";
 import { ConversationType, MemberType } from "./conversation.types";

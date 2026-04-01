@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as conversationController from "./conversation.controller";
-import { validate } from "../../middlewares/validate";
+import { validate } from "../../middlewares/validate.middleware";
 import { createConversationSchema } from "./conversation.schema";
 
 const router = Router();

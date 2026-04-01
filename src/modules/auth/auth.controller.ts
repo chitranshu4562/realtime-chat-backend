@@ -1,7 +1,7 @@
 import {Request, Response, NextFunction, CookieOptions} from 'express';
 import * as authService from './auth.service';
 import {ApiResponse} from "../../shared/ApiResponse";
-import {env} from "../../config/env";
+import {env} from "../../configs/env";
 import { UnauthorizedError } from '../../errors/AppError';
 import { REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_PATH } from '../../shared/constants';
 
