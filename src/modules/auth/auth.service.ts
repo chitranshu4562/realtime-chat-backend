@@ -1,4 +1,4 @@
-import prisma from "../../configs/prisma";
+import prisma from "../../lib/prisma";
 import {
     BadRequestError,
     ConflictError,
@@ -6,8 +6,8 @@ import {
     TooManyRequestsError,
     UnauthorizedError
 } from "../../errors/AppError";
-import {env} from "../../configs/env";
-import {redis} from "../../configs/redis";
+import {env} from "../../config/env";
+import {redis} from "../../lib/redis";
 import {generateOtp} from "../../utils/otp";
 import {sendOtpInEmail} from "../../shared/email/email.service";
 import {

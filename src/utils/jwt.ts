@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { StringValue } from 'ms';
-import { env } from "../configs/env";
+import { env } from "../config/env";
 import { UnauthorizedError } from "../errors/AppError";
 
 export interface AccessTokenPayload {

@@ -1,4 +1,4 @@
-import { env } from "../../configs/env";
+import { env } from "../../config/env";
 import { SendOtpPayload } from "./email.types";
 import { otpEmailTemplate } from "./email.templates";
 import nodemailer, { Transporter } from "nodemailer";
