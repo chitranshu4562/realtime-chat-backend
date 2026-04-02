@@ -7,7 +7,8 @@ import { getErrorMessage } from "../../helpers/util.helper";
 import { isConversationMember } from "../../../services/conversation.service";
 import prisma from "../../../lib/prisma";
 import { MESSAGE_EVENTS } from "./message.events";
-import { SendMessagePayload } from "./message.schema";
+import { SendMessagePayload, sendMessageSchema } from "./message.schema";
+import { withValidation } from "../../helpers/validate.helper";
 
 export function registerMessageHandlers(
     io: Server,
@@ -17,8 +18,6 @@ export function registerMessageHandlers(
     // send message handler
     async function sendMessageHandler({ conversationId, content }: SendMessagePayload, callback: AcknowledgementCallback) {
         try {
-            if (!content || content.trim().length === 0) throw new Error('Content is required');
-
             const isMember = await isConversationMember(conversationId, socket.userId);
             if (!isMember) throw new Error('You are not member of this conversation');
 
@@ -49,5 +48,5 @@ export function registerMessageHandlers(
     }
 
     // listen send message event
-    socket.on(MESSAGE_EVENTS.SEND, sendMessageHandler);
+    socket.on(MESSAGE_EVENTS.SEND, withValidation(socket, sendMessageSchema, sendMessageHandler));
 }

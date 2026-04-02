@@ -1,0 +1,467 @@
+openapi: 3.0.3
+info:
+  title: Realtime Chat API
+  description: |
+    HTTP API for the realtime-chat backend (`/api/v1`). Authenticated routes require a Bearer access JWT in the `Authorization` header.
+
+    Refresh tokens are issued as **httpOnly** cookies named `refreshToken`, scoped to path `/api/v1/auth/refresh` (see `POST /api/v1/auth/refresh` and `POST /api/v1/auth/logout`). Clients must send `credentials: 'include'` on cross-origin requests when using cookies.
+
+    Real-time messaging uses **Socket.IO** on the same HTTP server; socket events are not described in this OpenAPI document.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Default local server (PORT from env, default 3000)
+
+tags:
+  - name: Auth
+    description: Registration, login, OTP, and token refresh
+  - name: Conversation
+    description: Conversations (requires access token)
+
+paths:
+  /api/v1/auth/send-otp:
+    post:
+      tags: [Auth]
+      summary: Send email OTP for signup
+      description: Sends a one-time password to the email if it is not already registered. Rate-limited to one new OTP per 60 seconds per email while a valid OTP exists in Redis.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendOtpRequest'
+            example:
+              email: user@example.com
+      responses:
+        '200':
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkMessage'
+              example:
+                success: true
+                message: OTP sent successfully
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/auth/verify-otp:
+    post:
+      tags: [Auth]
+      summary: Verify email OTP
+      description: Returns a short-lived `verifiedEmailToken` JWT used only for completing signup.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+      responses:
+        '200':
+          description: OTP verified
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/VerifyOtpData'
+              example:
+                success: true
+                message: OTP verified successfully
+                data:
+                  verifiedEmailToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/auth/signup:
+    post:
+      tags: [Auth]
+      summary: Complete registration
+      description: |
+        Creates a user after email verification. Sets `refreshToken` cookie (httpOnly, path `/api/v1/auth/refresh`) and returns `accessToken` in the JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        '201':
+          description: User registered
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token (path-scoped to refresh endpoint)
+              schema:
+                type: string
+                example: refreshToken=...; Path=/api/v1/auth/refresh; HttpOnly; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CreatedEnvelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AccessTokenData'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      description: Sets `refreshToken` cookie and returns `accessToken` in the JSON body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Logged in
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AccessTokenData'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: Requires the `refreshToken` cookie (sent only when the request path matches the cookie path). Returns a new `accessToken` and rotates the refresh cookie.
+      parameters:
+        - in: cookie
+          name: refreshToken
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tokens refreshed
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AccessTokenData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (revoke refresh session)
+      description: If a `refreshToken` cookie is present, revokes it server-side and clears the cookie.
+      parameters:
+        - in: cookie
+          name: refreshToken
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Logged out (always 200 if no unhandled error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkMessage'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/conversation/create:
+    post:
+      tags: [Conversation]
+      summary: Create or return existing direct conversation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversationRequest'
+      responses:
+        '200':
+          description: Conversation created or existing direct chat returned
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ConversationCreatedData'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token from login, signup, or refresh response (`data.accessToken`).
+
+  schemas:
+    SuccessEnvelope:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          description: Omitted when there is no payload.
+
+    CreatedEnvelope:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          type: object
+
+    OkMessage:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+
+    ErrorBody:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        message:
+          type: string
+        errors:
+          type: array
+          description: Present for validation failures (422).
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field:
+                type: string
+                description: Dot-separated path (e.g. `memberIds`, `confirmPassword`).
+              message:
+                type: string
+
+    NotFoundBody:
+      type: object
+      required: [success, code]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        code:
+          type: string
+          enum: [NOT_FOUND]
+      description: Returned by the Express 404 handler for unknown routes (shape differs from AppError responses).
+
+    SendOtpRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Normalized to lowercase by the server.
+
+    VerifyOtpRequest:
+      type: object
+      required: [email, otp]
+      properties:
+        email:
+          type: string
+          format: email
+        otp:
+          type: string
+          pattern: '^\d{6}$'
+          description: Exactly six digits.
+
+    VerifyOtpData:
+      type: object
+      required: [verifiedEmailToken]
+      properties:
+        verifiedEmailToken:
+          type: string
+          description: JWT for signup; not an access token.
+
+    SignUpRequest:
+      type: object
+      required: [verifiedEmailToken, name, phoneNumber, password, confirmPassword]
+      properties:
+        verifiedEmailToken:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        phoneNumber:
+          type: string
+          pattern: '^[6-9]\d{9}$'
+          description: Indian-style 10-digit mobile starting 6–9.
+        password:
+          type: string
+          minLength: 8
+          maxLength: 64
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,64}$'
+          description: Uppercase, lowercase, digit, and special character.
+        confirmPassword:
+          type: string
+          description: Must match `password`.
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+
+    AccessTokenData:
+      type: object
+      required: [accessToken]
+      properties:
+        accessToken:
+          type: string
+          description: JWT for authenticated requests (Bearer token in the Authorization header).
+
+    CreateConversationRequest:
+      type: object
+      required: [memberIds]
+      properties:
+        type:
+          type: string
+          enum: [DIRECT, GROUP]
+          default: DIRECT
+        memberIds:
+          type: array
+          minItems: 1
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+      description: |
+        For `DIRECT`, `memberIds` must contain exactly one user id (the other participant). The authenticated user is always included; you cannot create a conversation with only yourself.
+
+    ConversationCreatedData:
+      type: object
+      required: [conversationId]
+      properties:
+        conversationId:
+          type: integer
+          format: int64
+          description: Database primary key of the conversation.
+
+  responses:
+    BadRequest:
+      description: Bad request (e.g. wrong OTP, invalid business rule)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Unauthorized:
+      description: Missing/invalid Bearer token or refresh session
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Conflict:
+      description: Conflict (e.g. email already registered)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    ValidationError:
+      description: Request body failed Zod validation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    TooManyRequests:
+      description: Rate limit (OTP resend or max OTP attempts)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    ServerError:
+      description: Unhandled server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'

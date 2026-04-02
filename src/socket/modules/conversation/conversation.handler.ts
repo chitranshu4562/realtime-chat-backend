@@ -41,8 +41,8 @@ export function registerConversationHandlers(socket: AuthenticatedSocket): void 
     }
 
     // listen join conversation event
-    socket.on(CONVERSATION_EVENTS.JOIN, withValidation(joinConversationSchema, joinConversationHandler));
+    socket.on(CONVERSATION_EVENTS.JOIN, withValidation(socket, joinConversationSchema, joinConversationHandler));
 
     // listed leave conversation event
-    socket.on(CONVERSATION_EVENTS.LEAVE, withValidation(leaveConversationSchema, leaveConversationHandler));
+    socket.on(CONVERSATION_EVENTS.LEAVE, withValidation(socket, leaveConversationSchema, leaveConversationHandler));
 }

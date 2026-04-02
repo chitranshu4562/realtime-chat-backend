@@ -1,0 +1,214 @@
+asyncapi: 3.1.0
+info:
+  title: Realtime Chat WebSocket Contract
+  version: 1.0.0
+  description: >
+    Socket.IO contract for `realtime-chat-backend`.
+
+
+    Auth: the server uses Socket.IO middleware and reads an access token from
+
+    `socket.handshake.headers.token`.
+
+
+    Acknowledgements: for `conversation:join`, `conversation:leave`, and
+    `message:send`,
+
+    the backend expects an acknowledgement callback (Socket.IO-style) from the
+    client and
+
+    responds with a `SocketResponse` object (`{ success: true, message, data? }`
+    or `{ success:false, message }`).
+servers:
+  default:
+    host: 'localhost:3000'
+    protocol: socket.io
+channels:
+  conversationJoin:
+    address: 'conversation:join'
+    messages:
+      joinConversationPayload:
+        payload:
+          $ref: '#/components/schemas/JoinConversationRequest'
+  conversationLeave:
+    address: 'conversation:leave'
+    messages:
+      leaveConversationPayload:
+        payload:
+          $ref: '#/components/schemas/LeaveConversationRequest'
+  messageSend:
+    address: 'message:send'
+    messages:
+      sendMessagePayload:
+        payload:
+          $ref: '#/components/schemas/SendMessageRequest'
+  messageNew:
+    address: 'message:new'
+    messages:
+      newMessagePayload:
+        payload:
+          $ref: '#/components/schemas/SocketResponseMessage'
+  socketError:
+    address: error
+    messages:
+      socketErrorPayload:
+        payload:
+          $ref: '#/components/schemas/SocketErrorResponse'
+operations:
+  joinConversation:
+    action: receive
+    channel:
+      $ref: '#/channels/conversationJoin'
+    summary: Client requests to join a conversation room
+  leaveConversation:
+    action: receive
+    channel:
+      $ref: '#/channels/conversationLeave'
+    summary: Client requests to leave a conversation room
+  sendMessage:
+    action: receive
+    channel:
+      $ref: '#/channels/messageSend'
+    summary: >-
+      Client sends a chat message (backend also acknowledges via Socket.IO
+      callback)
+  newMessage:
+    action: send
+    channel:
+      $ref: '#/channels/messageNew'
+    summary: Backend broadcasts a newly created message to the conversation room
+  socketError:
+    action: send
+    channel:
+      $ref: '#/channels/socketError'
+    summary: >-
+      Backend sends an error response to the socket (when ack callback is
+      missing or validation fails)
+components:
+  schemas:
+    JoinConversationRequest:
+      type: object
+      required:
+        - conversationId
+      properties:
+        conversationId:
+          description: Conversation id to join (server coerces numeric strings to int)
+          anyOf:
+            - type: integer
+              format: int64
+            - type: string
+              pattern: ^\\d+$
+    LeaveConversationRequest:
+      type: object
+      required:
+        - conversationId
+      properties:
+        conversationId:
+          description: Conversation id to leave (server coerces numeric strings to int)
+          anyOf:
+            - type: integer
+              format: int64
+            - type: string
+              pattern: ^\\d+$
+    SendMessageRequest:
+      type: object
+      required:
+        - conversationId
+        - content
+      properties:
+        conversationId:
+          description: Conversation id (server coerces numeric strings to int)
+          anyOf:
+            - type: integer
+              format: int64
+            - type: string
+              pattern: ^\\d+$
+        content:
+          type: string
+          minLength: 1
+          description: Message text (server trims whitespace and rejects empty content)
+    SocketResponseSuccess:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data:
+          nullable: true
+          description: Optional payload returned by server.
+          anyOf:
+            - $ref: '#/components/schemas/Message'
+            - type: object
+              additionalProperties: true
+    SocketResponseError:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          const: false
+        message:
+          type: string
+    SocketResponseMessage:
+      oneOf:
+        - $ref: '#/components/schemas/SocketResponseSuccess'
+        - $ref: '#/components/schemas/SocketResponseError'
+      description: 'Payload for `message:new` and Socket.IO acknowledgements.'
+    SocketErrorResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          const: false
+        message:
+          type: string
+    Message:
+      type: object
+      required:
+        - id
+        - content
+        - conversationId
+        - senderId
+        - sender
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          format: int64
+        content:
+          type: string
+        conversationId:
+          type: integer
+          format: int64
+        senderId:
+          type: integer
+          format: int64
+        sender:
+          type: object
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: integer
+              format: int64
+            name:
+              type: string
+              nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
