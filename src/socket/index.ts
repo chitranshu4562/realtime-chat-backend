@@ -7,6 +7,7 @@ import { logger } from "../helpers/logger";
 import { registerConversationHandlers } from "./modules/conversation/conversation.handler";
 import { registerMessageHandlers } from "./modules/message/message.handler";
 import { setOffline, setOnline } from "./helpers/presence.helper";
+import { deliverPendingMessages } from "./services/message.service";
 
 export function initSocketServer(httpServer: HttpServer): Server {
     const io = new Server(httpServer, {
@@ -30,7 +31,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
 
     // ── Per-socket handler registration ───────────────────────────────────
 
-    io.on(SOCKET_EVENTS.SYSTEM.CONNECT, (rawSocket: Socket) => {
+    io.on(SOCKET_EVENTS.SYSTEM.CONNECT, async (rawSocket: Socket) => {
         const socket = rawSocket as AuthenticatedSocket;
 
         logger.info(`${socket.username} is connected to socket having id: ${socket.id}`);
@@ -51,7 +52,6 @@ export function initSocketServer(httpServer: HttpServer): Server {
         socket.on(SOCKET_EVENTS.SYSTEM.ERROR, (err) => {
             logger.error(`socket error: ${err}`)
         })
-
     });
 
     return io;

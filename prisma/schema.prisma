@@ -125,5 +125,6 @@ model MessageStatus {
   updatedAt   DateTime          @updatedAt @map("updated_at")
 
   @@unique([messageId, recipientId])
+  @@index([recipientId, statusType])
   @@map("message_statuses")
 }

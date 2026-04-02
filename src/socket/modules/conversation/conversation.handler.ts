@@ -1,12 +1,13 @@
 import { AuthenticatedSocket } from "../../middlewares/auth.middleware";
 import { AcknowledgementCallback, socketErrorResponse, socketOkResponse } from "../../helpers/response.helper";
 import { logger } from "../../../helpers/logger";
-import { conversationRoom } from "../../helpers/room.helper";
+import { getConversationRoom } from "../../helpers/room.helper";
 import { getErrorMessage } from "../../helpers/util.helper";
 import { isConversationMember } from "../../../services/conversation.service";
 import { CONVERSATION_EVENTS } from "./conversation.events";
 import { JoinConversationPayload, joinConversationSchema, LeaveConversationPayload, leaveConversationSchema } from "./conversation.schema";
 import { withValidation } from "../../helpers/validate.helper";
+import { deliverPendingMessages } from "../../services/message.service";
 
 export function registerConversationHandlers(socket: AuthenticatedSocket): void {
 
@@ -17,12 +18,15 @@ export function registerConversationHandlers(socket: AuthenticatedSocket): void 
             if (!isMember) throw new Error('You are not allowed to join this conversation, please create conversation first');
 
             // now join conversation room
-            await socket.join(conversationRoom(conversationId))
+            await socket.join(getConversationRoom(conversationId));
 
-            logger.info(`userId: ${socket.userId}, username: ${socket.username} joined conversation room: ${conversationRoom(conversationId)}`)
+            // deliver pending messages
+            await deliverPendingMessages(socket);
+
+            logger.info(`userId: ${socket.userId}, username: ${socket.username} joined conversation room: ${getConversationRoom(conversationId)}`)
             callback(socketOkResponse('You have joined conversation'))
         } catch (err: unknown) {
-            logger.error(`userId: ${socket.userId}, username: ${socket.username} failed to join conversation room: ${conversationRoom(conversationId)}`)
+            logger.error(`userId: ${socket.userId}, username: ${socket.username} failed to join conversation room: ${getConversationRoom(conversationId)}`)
             callback(socketErrorResponse(getErrorMessage(err, 'Failed to join conversation')));
         }
     }
@@ -32,11 +36,11 @@ export function registerConversationHandlers(socket: AuthenticatedSocket): void 
     async function leaveConversationHandler({ conversationId }: LeaveConversationPayload, callback: AcknowledgementCallback) {
         try {
             // now leave conversation room
-            await socket.leave(conversationRoom(conversationId));
-            logger.info(`userId: ${socket.userId}, username: ${socket.username} left conversation room: ${conversationRoom(conversationId)}`)
+            await socket.leave(getConversationRoom(conversationId));
+            logger.info(`userId: ${socket.userId}, username: ${socket.username} left conversation room: ${getConversationRoom(conversationId)}`)
             callback(socketOkResponse('You have left conversation'))
         } catch (err: unknown) {
-            logger.error(`userId: ${socket.userId}, username: ${socket.username} failed to leave conversation room: ${conversationRoom(conversationId)}`)
+            logger.error(`userId: ${socket.userId}, username: ${socket.username} failed to leave conversation room: ${getConversationRoom(conversationId)}`)
             callback(socketErrorResponse(getErrorMessage(err, 'Failed to leave conversation')));
         }
     }
