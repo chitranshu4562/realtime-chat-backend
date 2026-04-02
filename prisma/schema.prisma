@@ -24,6 +24,7 @@ model User {
   createdConversations Conversation[]
   conversationMembers  ConversationMember[]
   messages             Message[]
+  messagesStatuses     MessageStatus[]
 
   @@map("users")
 }
@@ -88,7 +89,7 @@ model ConversationMember {
 }
 
 // ─────────────────────────────────────────
-// CONVERSATIONS
+// MESSAGES
 // ─────────────────────────────────────────
 
 model Message {
@@ -101,6 +102,28 @@ model Message {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
+  messageStatuses MessageStatus[]
+
   @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+enum MessageStatusType {
+  PENDING
+  DELIVERED
+  READ
+}
+
+model MessageStatus {
+  id          Int               @id @default(autoincrement())
+  messageId   Int               @map("message_id")
+  message     Message           @relation(fields: [messageId], references: [id])
+  recipientId Int               @map("recipient_id")
+  recipient   User              @relation(fields: [recipientId], references: [id])
+  statusType  MessageStatusType @default(PENDING) @map("status_type")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  @@unique([messageId, recipientId])
+  @@map("message_statuses")
 }

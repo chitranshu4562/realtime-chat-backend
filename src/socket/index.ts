@@ -6,6 +6,7 @@ import { SOCKET_EVENTS } from "./events";
 import { logger } from "../helpers/logger";
 import { registerConversationHandlers } from "./modules/conversation/conversation.handler";
 import { registerMessageHandlers } from "./modules/message/message.handler";
+import { setOffline, setOnline } from "./helpers/presence.helper";
 
 export function initSocketServer(httpServer: HttpServer): Server {
     const io = new Server(httpServer, {
@@ -32,14 +33,19 @@ export function initSocketServer(httpServer: HttpServer): Server {
     io.on(SOCKET_EVENTS.SYSTEM.CONNECT, (rawSocket: Socket) => {
         const socket = rawSocket as AuthenticatedSocket;
 
-        logger.info(`socket connected having id: ${socket.id}`);
+        logger.info(`${socket.username} is connected to socket having id: ${socket.id}`);
+
+        // set user online 
+        setOnline(socket.userId, socket.id);
 
         registerConversationHandlers(socket);
 
         registerMessageHandlers(io, socket);
 
         socket.on(SOCKET_EVENTS.SYSTEM.DISCONNECT, (reason) => {
-            logger.info(`socket disconnected having id: ${socket.id}\nwith reason: ${reason}`)
+            // set user offline
+            setOffline(socket.userId);
+            logger.info(`${socket.username} is disconnected socket having id: ${socket.id}\nwith reason: ${reason}`)
         })
 
         socket.on(SOCKET_EVENTS.SYSTEM.ERROR, (err) => {

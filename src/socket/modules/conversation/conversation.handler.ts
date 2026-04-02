@@ -31,6 +31,7 @@ export function registerConversationHandlers(socket: AuthenticatedSocket): void 
 
     async function leaveConversationHandler({ conversationId }: LeaveConversationPayload, callback: AcknowledgementCallback) {
         try {
+            // now leave conversation room
             await socket.leave(conversationRoom(conversationId));
             logger.info(`userId: ${socket.userId}, username: ${socket.username} left conversation room: ${conversationRoom(conversationId)}`)
             callback(socketOkResponse('You have left conversation'))

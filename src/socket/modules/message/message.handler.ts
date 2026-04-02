@@ -35,8 +35,8 @@ export function registerMessageHandlers(
                 }
             });
 
-            // broadcast this message to room (this includes all sockets in this room)
-            io.to(conversationRoom(conversationId)).emit(MESSAGE_EVENTS.NEW, socketOkResponse('New message sent', message));
+            // broadcast this message to room (this includes all users(sockets) except sender in this room)
+            socket.to(conversationRoom(conversationId)).emit(MESSAGE_EVENTS.NEW, socketOkResponse('New message sent', message));
 
             logger.info(`Message: '${message.content}', message id: ${message.id} sent to conversation: ${conversationId}`)
             callback(socketOkResponse('New message sent', message))
