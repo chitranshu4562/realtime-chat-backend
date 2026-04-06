@@ -1,5 +1,5 @@
 export function otpEmailTemplate(otp: string, expiresInMinutes: number) {
-    return `
+  return `
         <!DOCTYPE html>
             <html>
               <head>
@@ -23,7 +23,7 @@ export function otpEmailTemplate(otp: string, expiresInMinutes: number) {
                         <tr>
                           <td style="color:#555; font-size:14px; line-height:1.6; text-align:center;">
                             Use the OTP below to complete your verification.  
-                            This code is valid for <strong>${expiresInMinutes} minutes</strong>.
+                            This code is valid for <strong>${expiresInMinutes / 60} minutes</strong>.
                           </td>
                         </tr>
             
