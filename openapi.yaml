@@ -4,7 +4,7 @@ info:
   description: |
     HTTP API for the realtime-chat backend (`/api/v1`). Authenticated routes require a Bearer access JWT in the `Authorization` header.
 
-    Refresh tokens are issued as **httpOnly** cookies named `refreshToken`, scoped to path `/api/v1/auth/refresh` (see `POST /api/v1/auth/refresh` and `POST /api/v1/auth/logout`). Clients must send `credentials: 'include'` on cross-origin requests when using cookies.
+    Refresh tokens are issued as **httpOnly** cookies named `refreshToken`, with `Path=/api/v1/auth` (sent on requests under that path, e.g. refresh and logout). Clients must send `credentials: 'include'` on cross-origin requests when using cookies.
 
     Real-time messaging uses **Socket.IO** on the same HTTP server; socket events are not described in this OpenAPI document.
   version: 1.0.0
@@ -16,8 +16,8 @@ servers:
 tags:
   - name: Auth
     description: Registration, login, OTP, and token refresh
-  - name: Conversation
-    description: Conversations (requires access token)
+  - name: Conversations
+    description: Create and list conversations (requires access token)
   - name: Users
     description: User directory for authenticated clients (excludes the current user)
 
@@ -97,7 +97,7 @@ paths:
       tags: [Auth]
       summary: Complete registration
       description: |
-        Creates a user after email verification. Sets `refreshToken` cookie (httpOnly, path `/api/v1/auth/refresh`) and returns `accessToken` in the JSON body.
+        Creates a user after email verification. Sets `refreshToken` cookie (httpOnly, `Path=/api/v1/auth`) and returns `accessToken` in the JSON body.
       requestBody:
         required: true
         content:
@@ -112,7 +112,7 @@ paths:
               description: HttpOnly refresh token (path-scoped to refresh endpoint)
               schema:
                 type: string
-                example: refreshToken=...; Path=/api/v1/auth/refresh; HttpOnly; SameSite=Strict
+                example: refreshToken=...; Path=/api/v1/auth; HttpOnly; SameSite=Strict
           content:
             application/json:
               schema:
@@ -171,7 +171,7 @@ paths:
     post:
       tags: [Auth]
       summary: Refresh access token
-      description: Requires the `refreshToken` cookie (sent only when the request path matches the cookie path). Returns a new `accessToken` and rotates the refresh cookie.
+      description: Requires the `refreshToken` cookie (browser sends it for paths under `Path=/api/v1/auth`). Returns a new `accessToken` and rotates the refresh cookie.
       parameters:
         - in: cookie
           name: refreshToken
@@ -221,9 +221,58 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /api/v1/conversation/create:
+  /api/v1/conversations:
+    get:
+      tags: [Conversations]
+      summary: List conversations
+      description: |
+        Returns direct conversations where the authenticated user is `createdById`, ordered by `updatedAt` descending. Each item includes one `member` object (a user from the conversation; which participant appears depends on server ordering).
+
+        The optional `search` query parameter is validated when present; the current implementation does not filter results by it.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+          description: Optional string; reserved for future filtering.
+      responses:
+        '200':
+          description: Conversation list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GetConversationsData'
+              example:
+                success: true
+                message: List fetched successfully
+                data:
+                  conversations:
+                    - id: 1
+                      type: DIRECT
+                      createdAt: "2026-01-15T10:00:00.000Z"
+                      updatedAt: "2026-01-16T12:00:00.000Z"
+                      member:
+                        id: 2
+                        name: Ada Lovelace
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/conversations/create:
     post:
-      tags: [Conversation]
+      tags: [Conversations]
       summary: Create or return existing direct conversation
       security:
         - bearerAuth: []
@@ -485,6 +534,47 @@ components:
           type: integer
           format: int64
           description: Database primary key of the conversation.
+
+    ConversationMemberSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          nullable: true
+
+    ConversationListItem:
+      type: object
+      required: [id, type, createdAt, updatedAt, member]
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [DIRECT, GROUP]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        member:
+          allOf:
+            - $ref: '#/components/schemas/ConversationMemberSummary'
+          nullable: true
+
+    GetConversationsData:
+      type: object
+      required: [conversations]
+      properties:
+        conversations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationListItem'
 
     UserSummary:
       type: object

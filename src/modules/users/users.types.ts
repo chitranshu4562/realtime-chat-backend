@@ -1,11 +1,8 @@
 import { Prisma } from "../../generated/prisma/client";
 import { CurrentUser } from "../types";
+import { UsersParams } from "./users.schema";
 
-export interface GetUsersParams extends CurrentUser {
-    search?: string;
-    cursor?: number;
-    limit?: number;
-}
+export interface GetUsersParams extends UsersParams, CurrentUser { };
 
 const userSelect = {
     id: true,

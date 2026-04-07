@@ -17,7 +17,11 @@ export function validate(schema: ZodSchema) {
             return next(new ValidationError(firstErrorMessage, errors));
         }
 
-        req.body = result.data;
+        if (req.method === "GET") {
+            Object.assign(req.query, result.data);
+        } else {
+            req.body = result.data;
+        }
         next();
     }
 }
