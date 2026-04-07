@@ -1,10 +1,10 @@
 import prisma from "../../lib/prisma";
 import { BadRequestError } from "../../errors/AppError";
-import { CreateConversationInput } from "./conversation.schema";
+import { ConversationListParams, ConversationListResponse, CreateConversationInputData, CreateConversationResponse } from "./conversation.types";
 import { ConversationType, MemberType } from "./conversation.types";
 
-export const createConversation = async (creatorId: number, data: CreateConversationInput) => {
-    const allMemberIds = [...new Set([creatorId, ...data.memberIds])];
+export const createConversation = async (data: CreateConversationInputData): Promise<CreateConversationResponse> => {
+    const allMemberIds = [...new Set([data.loggedInUserId, ...data.memberIds])];
     if (allMemberIds.length < 2) throw new BadRequestError('You are not allowed to send message to yourself.')
 
     const users = await prisma.user.findMany({
@@ -39,12 +39,12 @@ export const createConversation = async (creatorId: number, data: CreateConversa
 
     const conversation = await prisma.conversation.create({
         data: {
-            createdById: creatorId,
+            createdById: data.loggedInUserId,
             type: data.type,
             conversationMembers: {
                 create: allMemberIds.map((userId) => ({
                     userId,
-                    role: userId === creatorId ? MemberType.ADMIN : MemberType.MEMBER
+                    role: userId === data.loggedInUserId ? MemberType.ADMIN : MemberType.MEMBER
                 }))
             }
         },
@@ -58,4 +58,37 @@ export const createConversation = async (creatorId: number, data: CreateConversa
     })
 
     return { conversationId: conversation.id };
+}
+
+export const fetchConversations = async ({ loggedInUserId, search }: ConversationListParams): Promise<ConversationListResponse> => {
+    const conversations = await prisma.conversation.findMany({
+        where: {
+            createdById: loggedInUserId,
+            type: ConversationType.DIRECT,
+        },
+        select: {
+            id: true,
+            type: true,
+            createdAt: true,
+            updatedAt: true,
+            conversationMembers: {
+                select: {
+                    user: {
+                        select: { id: true, name: true }
+                    }
+                },
+                take: 1,
+            }
+        },
+        orderBy: {
+            updatedAt: 'desc'
+        }
+    });
+
+    const formattedResponse = conversations.map(({ conversationMembers, ...conversation }) => ({
+        ...conversation,
+        member: conversationMembers[0].user ?? null
+    }));
+
+    return { conversations: formattedResponse };
 }

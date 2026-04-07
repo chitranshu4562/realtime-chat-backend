@@ -16,4 +16,9 @@ export const createConversationSchema = zod.object({
     }
 })
 
+export const getConversationsSchema = zod.object({
+    search: zod.string().trim().optional(),
+})
+
 export type CreateConversationInput = zod.infer<typeof createConversationSchema>;
+export type GetConversationsParams = zod.infer<typeof getConversationsSchema>;

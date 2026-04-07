@@ -18,6 +18,8 @@ tags:
     description: Registration, login, OTP, and token refresh
   - name: Conversation
     description: Conversations (requires access token)
+  - name: Users
+    description: User directory for authenticated clients (excludes the current user)
 
 paths:
   /api/v1/auth/send-otp:
@@ -253,6 +255,68 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+  /api/v1/users:
+    get:
+      tags: [Users]
+      summary: List users (search and cursor pagination)
+      description: |
+        Returns other registered users (never includes the authenticated user). Optional `search` matches name or email (case-insensitive). Use `nextCursor` from the previous response as `cursor` to fetch the next page; omit `cursor` for the first page.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+          description: Filter by substring match on name or email.
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          description: User `id` from the last item of the previous page; requests the next window of results.
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            default: 10
+          description: Maximum number of users to return (server may fetch one extra internally to detect `hasMore`).
+      responses:
+        '200':
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GetUsersData'
+              example:
+                success: true
+                message: Users retrieved successfully
+                data:
+                  users:
+                    - id: 2
+                      name: Ada Lovelace
+                      email: ada@example.com
+                      phoneNumber: "9876543210"
+                      createdAt: "2026-01-15T10:00:00.000Z"
+                  nextCursor: 2
+                  hasMore: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -421,6 +485,40 @@ components:
           type: integer
           format: int64
           description: Database primary key of the conversation.
+
+    UserSummary:
+      type: object
+      required: [id, name, email, phoneNumber, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phoneNumber:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    GetUsersData:
+      type: object
+      required: [users, nextCursor, hasMore]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSummary'
+        nextCursor:
+          type: integer
+          format: int64
+          nullable: true
+          description: Pass as `cursor` on the next request, or null when there is no further page.
+        hasMore:
+          type: boolean
 
   responses:
     BadRequest:
