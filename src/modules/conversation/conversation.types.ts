@@ -29,7 +29,7 @@ interface Conversation {
     type: typeof ConversationType[keyof typeof ConversationType];
     createdAt: Date;
     updatedAt: Date;
-    member: ConversationMember | null;
+    members: ConversationMember[];
 }
 
 // API response wrapper

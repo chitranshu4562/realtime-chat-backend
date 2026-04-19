@@ -1,7 +1,7 @@
 import prisma from "../../lib/prisma";
 import { GetUsersParams, GetUsersResult } from "./users.types";
 
-export const getUsers = async ({ loggedInUserId, search, cursor, limit = 10 }: GetUsersParams): Promise<GetUsersResult> => {
+export const getUsers = async ({ loggedInUserId, search, cursor, limit }: GetUsersParams): Promise<GetUsersResult> => {
     const take = limit + 1;
 
     const whereQuery = {

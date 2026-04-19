@@ -63,8 +63,10 @@ export const createConversation = async (data: CreateConversationInputData): Pro
 export const fetchConversations = async ({ loggedInUserId, search }: ConversationListParams): Promise<ConversationListResponse> => {
     const conversations = await prisma.conversation.findMany({
         where: {
-            createdById: loggedInUserId,
             type: ConversationType.DIRECT,
+            conversationMembers: {
+                some: { userId: loggedInUserId }
+            }
         },
         select: {
             id: true,
@@ -73,11 +75,11 @@ export const fetchConversations = async ({ loggedInUserId, search }: Conversatio
             updatedAt: true,
             conversationMembers: {
                 select: {
+                    role: true,
                     user: {
                         select: { id: true, name: true }
                     }
                 },
-                take: 1,
             }
         },
         orderBy: {
@@ -87,7 +89,10 @@ export const fetchConversations = async ({ loggedInUserId, search }: Conversatio
 
     const formattedResponse = conversations.map(({ conversationMembers, ...conversation }) => ({
         ...conversation,
-        member: conversationMembers[0].user ?? null
+        members: conversationMembers.map(({ user, role }) => ({
+            ...user,
+            isAdmin: role === MemberType.ADMIN
+        }))
     }));
 
     return { conversations: formattedResponse };

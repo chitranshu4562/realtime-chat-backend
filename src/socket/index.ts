@@ -7,7 +7,6 @@ import { logger } from "../helpers/logger";
 import { registerConversationHandlers } from "./modules/conversation/conversation.handler";
 import { registerMessageHandlers } from "./modules/message/message.handler";
 import { setOffline, setOnline } from "./helpers/presence.helper";
-import { deliverPendingMessages } from "./services/message.service";
 
 export function initSocketServer(httpServer: HttpServer): Server {
     const io = new Server(httpServer, {

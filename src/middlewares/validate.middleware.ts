@@ -2,6 +2,14 @@ import { ZodSchema } from "zod";
 import { Request, Response, NextFunction } from "express";
 import { ValidationError } from "../errors/AppError";
 
+declare global {
+    namespace Express {
+        interface Request {
+            parsedQuery?: unknown
+        }
+    }
+}
+
 export function validate(schema: ZodSchema) {
     return (req: Request, res: Response, next: NextFunction) => {
         const data = req.method === 'GET' ? req.query : req.body;
@@ -18,6 +26,7 @@ export function validate(schema: ZodSchema) {
         }
 
         if (req.method === "GET") {
+            req.parsedQuery = result.data;
             Object.assign(req.query, result.data);
         } else {
             req.body = result.data;

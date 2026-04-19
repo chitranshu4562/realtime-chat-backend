@@ -36,10 +36,10 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
 export const signup = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { verifiedEmailToken, name, phoneNumber, password } = req.body;
-        const { refreshToken, accessToken } = await authService.registerUser(verifiedEmailToken, name, phoneNumber, password);
+        const { tokens, user } = await authService.registerUser(verifiedEmailToken, name, phoneNumber, password);
 
-        res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, COOKIE_OPTIONS);
-        apiCreatedResponse(res, 'User is registered successfully', { accessToken });
+        res.cookie(REFRESH_TOKEN_COOKIE_NAME, tokens.refreshToken, COOKIE_OPTIONS);
+        apiCreatedResponse(res, 'User is registered successfully', { user, accessToken: tokens.accessToken });
     } catch (err) {
         next(err);
     }
@@ -48,10 +48,10 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
 export const login = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { email, password } = req.body;
-        const { refreshToken, accessToken } = await authService.loginUser(email, password);
+        const { tokens, user } = await authService.loginUser(email, password);
 
-        res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, COOKIE_OPTIONS);
-        apiOkResponse(res, "User is logged in successfully", { accessToken });
+        res.cookie(REFRESH_TOKEN_COOKIE_NAME, tokens.refreshToken, COOKIE_OPTIONS);
+        apiOkResponse(res, "User is logged in successfully", { user, accessToken: tokens.accessToken });
     } catch (err) {
         next(err);
     }
@@ -62,10 +62,10 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
         const token = req.cookies?.refreshToken;
         if (!token) throw new UnauthorizedError("Unauthorised");
 
-        const { refreshToken, accessToken } = await authService.refreshUserTokens(token);
+        const { tokens, user } = await authService.refreshUserTokens(token);
 
-        res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, COOKIE_OPTIONS);
-        apiOkResponse(res, "Tokens are refreshed successfully", { accessToken });
+        res.cookie(REFRESH_TOKEN_COOKIE_NAME, tokens.refreshToken, COOKIE_OPTIONS);
+        apiOkResponse(res, "Tokens are refreshed successfully", { user, accessToken: tokens.accessToken });
     } catch (err) {
         next(err);
     }

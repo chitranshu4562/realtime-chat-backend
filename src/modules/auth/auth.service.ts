@@ -18,7 +18,7 @@ import {
     VerifiedEmailTokenPayload,
     verifyEmailVerifiedToken, verifyRefreshToken
 } from "../../utils/jwt";
-import {AuthTokens, OtpData} from "./auth.types";
+import {AuthData, AuthTokens, OtpData} from "./auth.types";
 import {comparePassword, hashPassword, hashToken} from "../../utils/hash";
 
 const OTP_KEY = (email: string) => `otp:${email}`;
@@ -80,7 +80,7 @@ export const verifyEmailOtp = async (email: string, otp: string): Promise<{ veri
     return { verifiedEmailToken: verifiedToken };
 }
 
-export const registerUser = async (verifiedEmailToken: string, name: string, phoneNumber: string, password: string): Promise<AuthTokens> => {
+export const registerUser = async (verifiedEmailToken: string, name: string, phoneNumber: string, password: string): Promise<AuthData> => {
     const verifiedEmailPayload: VerifiedEmailTokenPayload = verifyEmailVerifiedToken(verifiedEmailToken);
 
     const existingUser = await prisma.user.findUnique({
@@ -99,13 +99,21 @@ export const registerUser = async (verifiedEmailToken: string, name: string, pho
             email: verifiedEmailPayload.email,
             password: hashedPassword,
             name, phoneNumber
+        },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            phoneNumber: true,
         }
     })
 
-    return issueTokens(user.id, user.email);
+    const tokens = await issueTokens(user.id, user.email);
+
+    return { user: { id: user.id, email: user.email, name: user.name, phoneNumber: user.phoneNumber }, tokens };
 }
 
-export const loginUser = async (email: string, password: string): Promise<AuthTokens> => {
+export const loginUser = async (email: string, password: string): Promise<AuthData> => {
     const user = await prisma.user.findUnique({
         where: { email: email },
     })
@@ -117,10 +125,12 @@ export const loginUser = async (email: string, password: string): Promise<AuthTo
     // delete existing refresh tokens
     await prisma.refreshToken.deleteMany({ where: { user } });
 
-    return issueTokens(user.id, user.email);
+    const tokens = await issueTokens(user.id, user.email);
+
+    return { user: { id: user.id, email: user.email, name: user.name, phoneNumber: user.phoneNumber }, tokens };
 }
 
-export const refreshUserTokens = async (refreshToken: string): Promise<AuthTokens> => {
+export const refreshUserTokens = async (refreshToken: string): Promise<AuthData> => {
     const payload: RefreshTokenPayload = verifyRefreshToken(refreshToken);
     const tokenHash = hashToken(refreshToken);
 
@@ -134,7 +144,9 @@ export const refreshUserTokens = async (refreshToken: string): Promise<AuthToken
 
     await prisma.refreshToken.deleteMany({ where: { tokenHash } })
 
-    return issueTokens(storedTokenData.user.id, storedTokenData.user.email)
+    const tokens = await issueTokens(storedTokenData.user.id, storedTokenData.user.email);
+
+    return { user: { id: storedTokenData.user.id, email: storedTokenData.user.email, name: storedTokenData.user.name, phoneNumber: storedTokenData.user.phoneNumber }, tokens };
 }
 
 export const logoutUser = async (refreshToken: string): Promise<void> => {

@@ -3,12 +3,12 @@ import * as usersService from "./users.service";
 import { apiOkResponse } from "../../helpers/api.response";
 import type { UsersParams } from "./users.schema";
 
-type UsersListRequest = Request & { query: UsersParams };
+type UsersListRequest = Request & { parsedQuery: UsersParams };
 
 export const users = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const loggedInUserId = req.user!.userId; // from auth middleware
-        const { search, cursor, limit } = (req as UsersListRequest).query;
+        const { search, cursor, limit } = (req as UsersListRequest).parsedQuery;
         const result = await usersService.getUsers({
             loggedInUserId,
             search,
