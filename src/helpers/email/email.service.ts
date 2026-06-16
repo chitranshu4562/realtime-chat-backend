@@ -1,7 +1,7 @@
 import { env } from "../../config/env";
 import { SendOtpPayload } from "./email.types";
 import { otpEmailTemplate } from "./email.templates";
-import nodemailer, { Transporter, TransportOptions } from "nodemailer";
+import nodemailer, { Transporter } from "nodemailer";
 
 let transporter: Transporter | null = null;
 
@@ -11,14 +11,13 @@ function getTransporter() {
             host: 'smtp.gmail.com',
             port: 587,
             secure: false,
-            family: 4,
             auth: {
                 user: env.GMAIL_USER,
                 pass: env.GMAIL_APP_PASSWORD,
             },
             connectionTimeout: 10000,
             socketTimeout: 10000,
-        } as TransportOptions)
+        })
     }
 
     return transporter;
