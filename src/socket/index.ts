@@ -38,7 +38,7 @@ export function initSocketServer(httpServer: HttpServer): Server {
         // set user online 
         setOnline(socket.userId, socket.id);
 
-        registerConversationHandlers(socket);
+        registerConversationHandlers(io, socket);
 
         registerMessageHandlers(io, socket);
 

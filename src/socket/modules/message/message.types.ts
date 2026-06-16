@@ -1,5 +1,6 @@
 export const MESSAGE_STATUS = {
     PENDING: "PENDING",
+    DELIVERED: "DELIVERED",
     READ: "READ"
 } as const;
 

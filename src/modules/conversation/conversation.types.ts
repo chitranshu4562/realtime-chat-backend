@@ -27,6 +27,7 @@ interface ConversationMember {
 interface Conversation {
     id: number;
     type: typeof ConversationType[keyof typeof ConversationType];
+    name: string | null;
     createdAt: Date;
     updatedAt: Date;
     members: ConversationMember[];

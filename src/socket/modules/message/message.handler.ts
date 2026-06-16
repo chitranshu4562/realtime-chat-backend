@@ -9,7 +9,7 @@ import prisma from "../../../lib/prisma";
 import { MESSAGE_EVENTS } from "./message.events";
 import { SendMessagePayload, sendMessageSchema } from "./message.schema";
 import { withValidation } from "../../helpers/validate.helper";
-import { isOnline } from "../../helpers/presence.helper";
+import { isOnline, getSocketId } from "../../helpers/presence.helper";
 import { MESSAGE_STATUS } from "./message.types";
 
 export function registerMessageHandlers(
@@ -41,7 +41,14 @@ export function registerMessageHandlers(
             });
 
 
-            const onlineRecipientIds = new Set(recipientIds.map(({ userId }) => userId).filter((userId) => isOnline(userId)));
+            // determine per-recipient delivery status based on presence + room membership
+            const getRecipientStatus = (userId: number): typeof MESSAGE_STATUS[keyof typeof MESSAGE_STATUS] => {
+                if (!isOnline(userId)) return MESSAGE_STATUS.PENDING;
+                const recipientSocketId = getSocketId(userId);
+                const recipientSocket = recipientSocketId ? io.sockets.sockets.get(recipientSocketId) : undefined;
+                const isInRoom = recipientSocket?.rooms.has(roomName) ?? false;
+                return isInRoom ? MESSAGE_STATUS.READ : MESSAGE_STATUS.DELIVERED;
+            };
 
             // create message and message statuses entry for all recipients
             const message = await prisma.message.create({
@@ -53,7 +60,7 @@ export function registerMessageHandlers(
                         createMany: {
                             data: recipientIds.map(({ userId }) => ({
                                 recipientId: userId,
-                                statusType: onlineRecipientIds.has(userId) ? MESSAGE_STATUS.READ : MESSAGE_STATUS.PENDING
+                                statusType: getRecipientStatus(userId)
                             }))
                         }
                     }

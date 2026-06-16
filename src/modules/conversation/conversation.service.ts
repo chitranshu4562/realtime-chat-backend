@@ -2,6 +2,7 @@ import prisma from "../../lib/prisma";
 import { BadRequestError } from "../../errors/AppError";
 import { ConversationListParams, ConversationListResponse, CreateConversationInputData, CreateConversationResponse } from "./conversation.types";
 import { ConversationType, MemberType } from "./conversation.types";
+import { ConversationType as PrismaConversationType } from "../../generated/prisma/enums";
 
 export const createConversation = async (data: CreateConversationInputData): Promise<CreateConversationResponse> => {
     const allMemberIds = [...new Set([data.loggedInUserId, ...data.memberIds])];
@@ -18,13 +19,13 @@ export const createConversation = async (data: CreateConversationInputData): Pro
         throw new BadRequestError(`User not found having these ids: ${missingIds.join(', ')}`)
     }
 
-    // prevent duplicate conversation creation
+    // prevent duplicate conversation creation for DIRECT chats
     if (data.type === ConversationType.DIRECT) {
         const result = await prisma.conversationMember.groupBy({
             by: ['conversationId'],
             where: {
                 userId: { in: allMemberIds },
-                conversation: { type: data.type }
+                conversation: { type: data.type as PrismaConversationType }
             },
             _count: { userId: true },
             having: {
@@ -40,7 +41,8 @@ export const createConversation = async (data: CreateConversationInputData): Pro
     const conversation = await prisma.conversation.create({
         data: {
             createdById: data.loggedInUserId,
-            type: data.type,
+            type: data.type as PrismaConversationType,
+            name: data.type === ConversationType.GROUP ? (data.name ?? null) : null,
             conversationMembers: {
                 create: allMemberIds.map((userId) => ({
                     userId,
@@ -50,9 +52,7 @@ export const createConversation = async (data: CreateConversationInputData): Pro
         },
         include: {
             conversationMembers: {
-                select: {
-                    userId: true, role: true
-                }
+                select: { userId: true, role: true }
             }
         }
     })
@@ -60,10 +60,9 @@ export const createConversation = async (data: CreateConversationInputData): Pro
     return { conversationId: conversation.id };
 }
 
-export const fetchConversations = async ({ loggedInUserId, search }: ConversationListParams): Promise<ConversationListResponse> => {
+export const fetchConversations = async ({ loggedInUserId }: ConversationListParams): Promise<ConversationListResponse> => {
     const conversations = await prisma.conversation.findMany({
         where: {
-            type: ConversationType.DIRECT,
             conversationMembers: {
                 some: { userId: loggedInUserId }
             }
@@ -71,6 +70,7 @@ export const fetchConversations = async ({ loggedInUserId, search }: Conversatio
         select: {
             id: true,
             type: true,
+            name: true,
             createdAt: true,
             updatedAt: true,
             conversationMembers: {

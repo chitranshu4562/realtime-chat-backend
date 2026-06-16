@@ -1,3 +1,4 @@
+import { Server } from "socket.io";
 import { AuthenticatedSocket } from "../../middlewares/auth.middleware";
 import { AcknowledgementCallback, socketErrorResponse, socketOkResponse } from "../../helpers/response.helper";
 import { logger } from "../../../helpers/logger";
@@ -7,9 +8,9 @@ import { isConversationMember } from "../../../services/conversation.service";
 import { CONVERSATION_EVENTS } from "./conversation.events";
 import { JoinConversationPayload, joinConversationSchema, LeaveConversationPayload, leaveConversationSchema } from "./conversation.schema";
 import { withValidation } from "../../helpers/validate.helper";
-import { deliverPendingMessages } from "../../services/message.service";
+import { markConversationMessagesRead } from "../../services/message.service";
 
-export function registerConversationHandlers(socket: AuthenticatedSocket): void {
+export function registerConversationHandlers(io: Server, socket: AuthenticatedSocket): void {
 
     // join conversation handler
     async function joinConversationHandler({ conversationId }: JoinConversationPayload, callback: AcknowledgementCallback) {
@@ -20,8 +21,8 @@ export function registerConversationHandlers(socket: AuthenticatedSocket): void 
             // now join conversation room
             await socket.join(getConversationRoom(conversationId));
 
-            // deliver pending messages
-            await deliverPendingMessages(socket);
+            // mark PENDING + DELIVERED messages as READ, deliver content, notify senders
+            await markConversationMessagesRead(socket, io, conversationId);
 
             logger.info(`userId: ${socket.userId}, username: ${socket.username} joined conversation room: ${getConversationRoom(conversationId)}`)
             callback(socketOkResponse('You have joined conversation'))
@@ -32,7 +33,6 @@ export function registerConversationHandlers(socket: AuthenticatedSocket): void 
     }
 
     // leave conversation handler
-
     async function leaveConversationHandler({ conversationId }: LeaveConversationPayload, callback: AcknowledgementCallback) {
         try {
             // now leave conversation room

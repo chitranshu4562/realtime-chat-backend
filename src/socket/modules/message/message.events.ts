@@ -3,4 +3,5 @@ export const MESSAGE_EVENTS = {
     NEW: "message:new",
     READ: "message:read",
     PENDING: "message:pending",
+    STATUS_UPDATE: "message:status_update",
 } as const;

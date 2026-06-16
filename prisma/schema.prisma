@@ -58,6 +58,7 @@ model Conversation {
   createdById Int              @map("created_by_id")
   createdBy   User             @relation(fields: [createdById], references: [id], onDelete: Cascade)
   type        ConversationType @default(DIRECT)
+  name        String?          @map("name")
   createdAt   DateTime         @default(now()) @map("created_at")
   updatedAt   DateTime         @updatedAt @map("updated_at")
 

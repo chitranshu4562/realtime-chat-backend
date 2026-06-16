@@ -1,4 +1,4 @@
-export type MessageStatus = "PENDING" | "READ";
+export type MessageStatus = "PENDING" | "DELIVERED" | "READ";
 
 export interface Message {
     id: number;
@@ -17,4 +17,23 @@ export interface MessageList {
 
 export interface GetMessagesParams {
     conversationId: number;
+}
+
+export interface MessageRecipientStatus {
+    recipientId: number;
+    recipientName: string | null;
+    statusType: MessageStatus;
+    updatedAt: Date;
+}
+
+export interface MessageDetails {
+    id: number;
+    content: string;
+    createdAt: Date;
+    sender: { id: number; name: string | null };
+    statuses: MessageRecipientStatus[];
+}
+
+export interface GetMessageDetailsParams {
+    messageId: number;
 }
