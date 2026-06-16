@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "CommonJS",
+    "moduleResolution": "node10",
+    "ignoreDeprecations": "6.0",
     "target": "ES2023",
     "rootDir": "src",
     "outDir": "dist",
