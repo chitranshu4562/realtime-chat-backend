@@ -12,7 +12,9 @@ function getTransporter() {
             auth: {
                 user: env.GMAIL_USER,
                 pass: env.GMAIL_APP_PASSWORD,
-            }
+            },
+            connectionTimeout: 10000,
+            socketTimeout: 10000,
         })
     }
 
