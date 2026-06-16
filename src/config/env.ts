@@ -19,8 +19,8 @@ const envSchema = zod.object({
 
     CLIENT_URL: zod.string().min(1),
 
-    GMAIL_USER: zod.string().min(1),
-    GMAIL_APP_PASSWORD: zod.string().min(1),
+    BREVO_API_KEY: zod.string().min(1),
+    BREVO_SENDER_EMAIL: zod.string().email(),
 })
 
 const parsed = envSchema.safeParse(process.env);

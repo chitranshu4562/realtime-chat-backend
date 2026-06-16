@@ -1,57 +1,40 @@
 import { env } from "../../config/env";
 import { SendOtpPayload } from "./email.types";
 import { otpEmailTemplate } from "./email.templates";
-import nodemailer, { Transporter } from "nodemailer";
 
-let transporter: Transporter | null = null;
-
-function getTransporter() {
-    if (!transporter) {
-        transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: env.GMAIL_USER,
-                pass: env.GMAIL_APP_PASSWORD,
-            },
-            connectionTimeout: 10000,
-            socketTimeout: 10000,
-        })
-    }
-
-    return transporter;
-}
-
-export async function sendEmail(
-    {
-        to,
-        subject,
-        html
-    }: {
-        to: string;
-        subject: string;
-        html: string;
-    }
-): Promise<void> {
-    try {
-        const transporterClient = getTransporter();
-        const mailOptions = {
-            from: `"Realtime Chat App" <${env.GMAIL_USER}>`,
-            to,
+export async function sendEmail({
+    to,
+    subject,
+    html,
+}: {
+    to: string;
+    subject: string;
+    html: string;
+}): Promise<void> {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "api-key": env.BREVO_API_KEY,
+        },
+        body: JSON.stringify({
+            sender: { email: env.BREVO_SENDER_EMAIL, name: "Realtime Chat" },
+            to: [{ email: to }],
             subject,
-            html
-        }
-        const response = await transporterClient.sendMail(mailOptions);
-        return response;
-    } catch (err) {
-        throw new Error(err instanceof Error ? err.message : 'Failed to send email')
+            htmlContent: html,
+        }),
+    });
+
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(`Brevo error ${res.status}: ${JSON.stringify(body)}`);
     }
 }
 
 export async function sendOtpInEmail({ to, otp, expiresInMinutes }: SendOtpPayload): Promise<void> {
     await sendEmail({
-        to: to,
+        to,
         subject: "Your verification code",
         html: otpEmailTemplate(otp, expiresInMinutes),
     });
