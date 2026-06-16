@@ -4,11 +4,12 @@ import v1Router from "./routes/v1";
 import {httpLogger} from "./middlewares/httpLogger.middleware";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { env } from "./config/env";
 
 const app = express();
 
 app.use(cors({
-    origin: true,
+    origin: env.CLIENT_URL,
     credentials: true,
 }))
 
