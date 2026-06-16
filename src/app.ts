@@ -3,15 +3,21 @@ import {errorHandler} from "./middlewares/errorHandler.middleware";
 import v1Router from "./routes/v1";
 import {httpLogger} from "./middlewares/httpLogger.middleware";
 import cookieParser from "cookie-parser";
-import cors from "cors";
 import { env } from "./config/env";
 
 const app = express();
 
-app.use(cors({
-    origin: env.CLIENT_URL,
-    credentials: true,
-}))
+app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", env.CLIENT_URL);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,POST,PUT,DELETE,PATCH,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+    if (req.method === "OPTIONS") {
+        res.status(204).end();
+        return;
+    }
+    next();
+});
 
 app.use(express.json());
 app.use(cookieParser());
