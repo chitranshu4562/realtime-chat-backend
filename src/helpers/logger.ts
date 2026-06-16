@@ -17,14 +17,16 @@ const prodFormat = combine(
     winston.format.json() // structured JSON for log aggregators
 );
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const logger = winston.createLogger({
-    level: process.env.NODE_ENV === 'production' ? 'warn' : 'debug',
-    format: process.env.NODE_ENV === 'production' ? prodFormat : devFormat,
+    level: isProduction ? 'info' : 'debug',
+    format: isProduction ? prodFormat : devFormat,
     transports: [
         new winston.transports.Console(),
-
-        // separate files for errors and combined logs
-        new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-        new winston.transports.File({ filename: 'logs/combined.log' }),
+        ...(!isProduction ? [
+            new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+            new winston.transports.File({ filename: 'logs/combined.log' }),
+        ] : []),
     ],
 });
